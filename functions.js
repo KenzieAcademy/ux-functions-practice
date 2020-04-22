@@ -16,6 +16,7 @@
     Here is an example classroom:
 */
 
+
 let classroom = {
     name: "Intro to JavaScript",
     teacher: {
@@ -112,11 +113,14 @@ let classroom = {
  * If the student is not found, then return null.
  */
 function getStudentById(classroom, studentId) {
-    // Your Code Here!
-    // Look through the students list and find a student where their id matches the studentId
-    // return that object.
+    let studentsArray = classroom.students;
+    for (let i = 0; i < studentsArray.length; i++) {
+        let student = studentsArray[i];
+        if (student.id === studentId) {
+            return student;
+        }
+    }
 }
-
 /**
  * calculateGradesForAssignmentId
  * @param {object} classroom - the classroom object
@@ -131,7 +135,7 @@ function getStudentById(classroom, studentId) {
  * If a student already has a grade for an assignment, you should not 
  * calculate them a new one.
  * 
- * Waning: the assignments may not necesarilly be graded in order!
+ * Warning: the assignments may not necesarilly be graded in order!
  * Do not assume that the grades array for a student will be the correct length.
  * You should put the grade for a given assignment at the same index as the assignment
  * 
@@ -141,12 +145,28 @@ function getStudentById(classroom, studentId) {
  * Hint: It would be useful to make a function 
  */
 function calculateGradesForAssignmentId(classroom, assignmentId) {
-    // Your Code Here!
-    // First find the assignment with the given id, 
-    // then for every student grade that assignment using calculateAssignmentGradeForStudent
-    // then assign them their grade in the correct index of their grades array.
-}
+    let assignmentsArray = classroom.assignments;
+    let studentsArray = classroom.students;
+    let selectedAssignment = null;
+    for (let i = 0; i < assignmentsArray.length; i++) {
+        let assignment = assignmentsArray[i];
+        if (assignmentId === assignment.id) {
+            selectedAssignment = assignment;
+        }
+    }
+    let assignmentIndex = assignmentsArray.indexOf(selectedAssignment);
 
+    for (let student of studentsArray) {
+        let studentAssignment = student.grades[assignmentIndex];
+        if (!studentAssignment) {
+            let studentGrade = calculateAssignmentGradeForStudent(
+                student,
+                selectedAssignment
+            );
+            student.grades[assignmentIndex] = studentGrade;
+        }
+    }
+}
 /**
  * calculateAllGrades
  * @param {object} classroom - the classroom object
@@ -167,11 +187,10 @@ function calculateGradesForAssignmentId(classroom, assignmentId) {
  * 
  */
 function calculateAllGrades(classroom) {
-    // Your Code Here!
-    // Go through every assignment in the assignments list, grade each assignment.
-    // Hint: This can call the calculateGradesForAssignmentId() function!
+    classroom.assignments.forEach(function(assignment) {
+        calculateGradesForAssignmentId(classroom, assignment.id);
+    });
 }
-
 /**
  * getListOfStudentsWhoFailedAssignmentId
  * @param {object} classroom - the classroom object
@@ -209,12 +228,14 @@ function calculateAllGrades(classroom) {
  */
 function getListOfStudentsWhoFailedAssignmentId(classroom, assignmentId) {
     let listOfStudents = [];
-    // Your Code Here!
-    // Find the index of the assignment with the given id.
-    // For each student,
-    //  if they have a failing grade, 
-    //  then add their student object onto the list of students.
-
+    let assignmentIndex = classroom.assignments.findIndex(function(assignment) {
+        return assignment.id === assignmentId;
+    })
+    classroom.students.forEach(function(student) {
+        if(isFailingGrade (student.grades[assignmentIndex], classroom.assignments[assignmentIndex].numPoints)){
+            listOfStudents.push(student)
+        }
+    });
     return listOfStudents;
 }
 
@@ -232,13 +253,20 @@ function getListOfStudentsWhoFailedAssignmentId(classroom, assignmentId) {
  */
 function getListOfStudentsWhoAreFailing(classroom) {
     let listOfFailingStudents = [];
-    // Your Code Here!
-    // Add up the total number of points for the assignments.
-    // For each student
-    //   add up all of their grades.
-    //   if they have a failing grade
-    //     then add them to the listOfFailingStudents
-    // 
+    let assignmentsNumPoints = 0;
+    classroom.assignments.forEach(function (assignment) {
+        assignmentsNumPoints += assignment.numPoints
+    })
+    
+    classroom.students.forEach(function (student) {
+        let gradeTotal = 0;
+        student.grades.forEach(function (grade) {
+            gradeTotal += grade;
+        })
+        if(isFailingGrade(gradeTotal, assignmentsNumPoints)) {
+            listOfFailingStudents.push(student);
+        }
+    })
     return listOfFailingStudents;
 }
 
@@ -256,9 +284,10 @@ function getListOfStudentsWhoAreFailing(classroom) {
  * added twice!  Every assignment should only appear once. 
  */
 function teachAssignment(classroom, assignment) {
-    // Your Code Here!
-    // Check if the assignment is already in the assignment list, 
-    // if it is not, then add it
+    if(!classroom.assignments.find(function(_assignment) {
+        return _assignment.id === assignment.id;
+    }))
+    classroom.assignments.push(assignment);
 }
 
 /**
@@ -275,8 +304,8 @@ function teachAssignment(classroom, assignment) {
  * added twice!  Every assignment should only appear once. 
  */
 function teachAndGradeAssignment(classroom, assignment) {
-    // Your Code Here!
-    // Hint: You can call teachAssignment() and calculateGradesForAssignmentId() 
+    teachAssignment(classroom, assignment);
+    calculateGradesForAssignmentId(classroom, assignment.id);
 }
 
 /**
@@ -293,11 +322,15 @@ function teachAndGradeAssignment(classroom, assignment) {
  * averageGrade = (sum of all grades received by students for the assignment) / number of students
  */
 function findAverageGradeForAssignmentId(classroom, assignmentId) {
-    let averageGrade;
-    // Your Code Here!
-    // Find the assignment index for the given assignmentId
-    // Add up the grade of every student using the assignment index
-    // divide by the number of students to get the average grade
+    let assignmentIndex = classroom.assignments.findIndex(function (assignment){
+        return assignment.id === assignmentId;
+    })
+    let totalGrade = 0;
+    classroom.students.forEach(function(student) {
+        totalGrade += student.grades[assignmentIndex];
+    })
+    let averageGrade = totalGrade / classroom.students.length
+    
     return averageGrade;
 }
 
@@ -327,14 +360,18 @@ function findAverageGradeForAssignmentId(classroom, assignmentId) {
  */
 function getFinalGrades(classroom) {
     let listOfGrades = [];
-    // Your Code Here!
-    // First, find the total available points by adding up the points of every assignment
-    // Then for each student
-    //    Add up the points from their grades.
-    //    Calculate their letter grade using getFinalLetterGrade
-    //    create a new object for the students final grade,
-    //       it should include the id, their name, and their finalGrade
-    //       add that object onto the list of grades.  
+    let totalNumPoints = 0;
+    classroom.assignments.forEach(function(assignment) {
+        totalNumPoints += assignment.numPoints;
+    })
+    classroom.students.forEach(function(student) {
+        let gradeTotal = 0;
+        student.grades.forEach(function(grade) {
+            gradeTotal += grade;
+        })
+    let letterGrade = getFinalLetterGrade(gradeTotal, totalNumPoints);
+    listOfGrades.push({id:student.id, name:student.name, finalGrade:letterGrade})
+})
     return listOfGrades;
 }
 
@@ -342,21 +379,21 @@ function getFinalGrades(classroom) {
     
     Put all of your subroutines down here.  Try to make them clean
     and reusable.  Try to use them as much as possible. 
-
+ 
     A few are already here for you.
-
+ 
     You should add at least a few subroutines!  If you do not, you will 
     lose points.
-
+ 
     Hint: In the grading rubric, there are 7 new subroutines.  You can have more or 
     less than that, but there are a lot of options on how to optimize your code!
-
+ 
     The more subroutines you write, the less overall code you will end up
     writing in the whole assignment!
-
+ 
     You do not need to add comments above your functions like the examples,
     those are just there to help you understand what they are doing.
-
+ 
 */
 
 
@@ -422,10 +459,6 @@ function getFinalLetterGrade(sumOfPoints, totalAvailablePoints) {
 }
 
 // Add your helper functions here!
-
-function doSomething(parameter1, parameter2) {
-    // Create your own function!
-}
 
 /* 
    -------TESTS---------------------------------------------------------------
@@ -771,11 +804,4 @@ function doSomething(parameter1, parameter2) {
         };
         return classRoom;
     }
-
 }
-
-
-
-
-
-
